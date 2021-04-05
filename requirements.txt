@@ -1,0 +1,9 @@
+fastapi==0.63.0
+httpx==0.17.1
+pydantic==1.8.1
+fastapi-cache==0.1.0
+pytest==6.2.3
+requests==2.25.1
+typer==0.3.2
+yaspin==1.5.0
+locust==1.4.4

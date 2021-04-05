@@ -1,0 +1,55 @@
+version: "3.8"
+services:
+  redis:
+    container_name: redis
+    image: redis:alpine
+
+    environment:
+      - REDIS_PASSWORD=nbis_is_the_best
+      - REDIS_REPLICATION_MODE=master
+
+    ports:
+      - 6379:6379
+
+    volumes:
+      # save redisearch data to your current working directory
+      - ./redis-data:/data
+
+    command:
+      # Save if 1 keys are added in every 900 seconds
+      - --save 900 1
+
+      # Set password
+      - --requirepass nbis_is_the_best
+
+    networks:
+      - redis-net
+
+  redisinsight: # redis db visualization dashboard
+    container_name: redis-insight
+    image: redislabs/redisinsight
+    ports:
+      - 8001:8001
+    volumes:
+      - redisinsight:/db
+    networks:
+      - redis-net
+
+  web:
+    container_name: relay
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+      - redis
+    networks:
+      - redis-net
+
+networks:
+  redis-net:
+
+volumes:
+  redis-data:
+  redisinsight:
