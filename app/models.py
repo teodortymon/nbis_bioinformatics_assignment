@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, Type
+from typing import Dict, List
 from pydantic import BaseModel
 
 
@@ -25,7 +25,3 @@ class RestaurantListDetails(BaseModel):
 
 class RestaurantList(BaseModel):
     restaurants: List[RestaurantListDetails]
-
-
-# anyIORestaurantModelType = Union[Type[Restaurant], Type[RestaurantList]]
-# anyIORestaurantModelType = Union[Restaurant, RestaurantList]

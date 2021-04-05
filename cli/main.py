@@ -1,12 +1,9 @@
 import requests
 import typer
 from typing import Optional
-from yaspin import yaspin
-import constants
-
-# Temporary install instructions:
-# pip3 install typing typer yaspin requests or pip3 install -r requirements.txt
-# python3 main.py
+from yaspin import yaspin   # type: ignore
+import error_msgs
+import config
 
 app = typer.Typer()
 
@@ -47,11 +44,11 @@ def list_all_and_pick_one_restaurant_id():
 def request_all_restaurants():
     with yaspin(text="Loading all restaurants", color="yellow") as spinner:
         try:
-            response = requests.get(constants.URL)
+            response = requests.get(config.APP_URL)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             spinner.write(
-                f"{constants.ERROR_REQUEST_MANY_RESTAURANTS_MSG} \n  {repr(e)}"
+                f"{error_msgs.ERROR_REQUEST_MANY_RESTAURANTS} \n  {repr(e)}"
             )
             spinner.fail("[Failed]")
             raise typer.Exit(code=1)
@@ -64,7 +61,7 @@ def decode_all_restaurants(data):
     try:
         restaurants = data.json()["restaurants"]
     except ValueError as e:
-        typer.echo(f"{constants.ERROR_PROCESSING_JSON_MSG}\n {repr(e)}")
+        typer.echo(f"{error_msgs.ERROR_PROCESSING_JSON}\n {repr(e)}")
         raise typer.Exit(code=1)
     else:
         return restaurants
@@ -73,13 +70,13 @@ def decode_all_restaurants(data):
 def request_restaurant(restaurant_id: str):
     with yaspin(text=f"Loading {restaurant_id}", color="yellow") as spinner:
         try:
-            response = requests.get(constants.URL + restaurant_id)
+            response = requests.get(config.APP_URL + restaurant_id)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             spinner.write(
-                f"\n{constants.ERROR_REQUEST_ONE_RESTAURANT_MSG}"
+                f"\n{error_msgs.ERROR_REQUEST_ONE_RESTAURANT}"
                 f"\n  {repr(e)}"
-                f"\n{constants.ERROR_VALID_ID_MSG}"
+                f"\n{error_msgs.ERROR_VALID_ID}"
             )
             spinner.fail("[Failed]")
             raise typer.Exit(code=1)
@@ -94,9 +91,9 @@ def decode_restaurant(data):
         restaurant = data.json()["restaurant"]
     except ValueError as e:
         typer.echo(
-            f"{constants.ERROR_PROCESSING_JSON_MSG}"
+            f"{error_msgs.ERROR_PROCESSING_JSON}"
             f"\n{repr(e)}"
-            f"\n{constants.ERROR_VALID_ID_MSG}"
+            f"\n{error_msgs.ERROR_VALID_ID}"
         )
         raise typer.Exit(code=1)
     else:

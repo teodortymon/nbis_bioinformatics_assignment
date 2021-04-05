@@ -1,6 +1,6 @@
 from locust import HttpUser, task, between
 
-from app import constants
+from app import config
 
 restaurants = ["haga", "rudbeck", "hjulet", "jons"]
 
@@ -10,12 +10,12 @@ class LoadTest(HttpUser):
 
     @task()
     def query_all_restaurants(self):
-        self.client.get(f"/{constants.RESTAURANTS_PATH}/")
+        self.client.get(f"/{config.RESTAURANTS_PATH}/")
 
     @task()
     def query_restaurants_one_by_one(self):
         for restaurant_id in restaurants:
             self.client.get(
-                f"/{constants.RESTAURANTS_PATH}/{restaurant_id}",
+                f"/{config.RESTAURANTS_PATH}/{restaurant_id}",
             )
 

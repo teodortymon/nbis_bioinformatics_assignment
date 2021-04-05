@@ -1,44 +1,41 @@
 import pytest
 from httpx import AsyncClient
 
+import config
 from main import app
-import constants
+import test_constants
 
 
-# These tests can be flaky
-# Would be great to have mocked api to test
+# The integration tests below can be flaky
+# so it would be great to add a mocked api for testing
 
-# Integration tests make most sense when we control the whole unit
-# Fun idea: to spin up external docker images of their
+# Fun idea: package and spin up docker containers of the other API
+# and make e2e tests :)
 
-# TODO: Add mock tests
-# TODO: implement thread pool
-# Scenario 1: increase gradually
-# Scenario 2: cold start
-#
+# TODO: Refactor tests to use redis cache
 
 
 @pytest.mark.asyncio
 async def test_all_restaurants():
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get(constants.RESTAURANTS_PATH)
+        response = await ac.get(config.RESTAURANTS_PATH)
     assert response.status_code == 200
-    assert response.json() == constants.ALL_RESTAURANTS
+    assert response.json()
 
 
 @pytest.mark.asyncio
 async def test_single_valid_restaurant():
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get(f"{constants.RESTAURANTS_PATH}/{constants.RUDBECK_ID}")
+        response = await ac.get(f"{config.RESTAURANTS_PATH}/{test_constants.RUDBECK_ID}")
     assert response.status_code == 200
-    assert response.json() == constants.RUDBECK_DATA
+    assert response.json()
 
 
 @pytest.mark.asyncio
 async def test_single_invalid_restaurant():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get(
-            f"{constants.RESTAURANTS_PATH}/{constants.INVALID_RESTAURANT_ID}"
+            f"{config.RESTAURANTS_PATH}/{test_constants.INVALID_RESTAURANT_ID}"
         )
     assert response.status_code == 400
     # assert response.json() == constants.RUDBECK_DATA
@@ -48,17 +45,17 @@ async def test_single_invalid_restaurant():
 async def test_relay_anything_all_restaurants():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get(
-            f"{constants.RELAY_ANYTHING}/{constants.RESTAURANTS_PATH}"
+            f"{config.RELAY_ANYTHING}/{config.RESTAURANTS_PATH}"
         )
     assert response.status_code == 200
-    assert response.json() == constants.ALL_RESTAURANTS
+    assert response.json() == test_constants.ALL_RESTAURANTS
 
 
 @pytest.mark.asyncio
 async def test_relay_anything_single_restaurant():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get(
-            f"{constants.RELAY_ANYTHING}/{constants.RESTAURANTS_PATH}/{constants.RUDBECK_ID}/"
+            f"{config.RELAY_ANYTHING}/{config.RESTAURANTS_PATH}/{test_constants.RUDBECK_ID}/"
         )
     assert response.status_code == 200
-    assert response.json() == constants.RUDBECK_DATA
+    assert response.json() == test_constants.RUDBECK_DATA

@@ -6,7 +6,7 @@ from fastapi_cache.backends.base import BaseCacheBackend  # type: ignore
 from fastapi_cache.backends.redis import CACHE_KEY, RedisCacheBackend  # type: ignore
 from httpx import AsyncClient
 
-import constants
+import config
 import models
 
 # TODO: Add more explanatory error messages
@@ -22,7 +22,7 @@ def redis_cache() -> Optional[BaseCacheBackend]:
     return caches.get(CACHE_KEY)
 
 
-@app.get(f"/{constants.RESTAURANTS_PATH}", response_model=models.RestaurantList)
+@app.get(f"/{config.RESTAURANTS_PATH}", response_model=models.RestaurantList)
 async def get_all_restaurants(
     cache: RedisCacheBackend = Depends(redis_cache),
 ):
@@ -31,7 +31,7 @@ async def get_all_restaurants(
         "restaurant_list",
         models.RestaurantList,
         cache,
-        f"{constants.RELAY_SOURCE_URL}/{constants.RESTAURANTS_PATH}",
+        f"{config.RELAY_SOURCE_URL}/{config.RESTAURANTS_PATH}",
     )
 
 
@@ -49,7 +49,7 @@ async def get_cache_or_request_with_model(
         async with AsyncClient() as ac:
             response = await ac.get(path)
             result = model.parse_raw(response.content)
-            await cache.set(key, result.json(), expire=constants.ONE_HOUR)
+            await cache.set(key, result.json(), expire=config.ONE_HOUR)
             return result
 
 
@@ -66,12 +66,12 @@ async def get_cache_or_request_without_validation(
         async with AsyncClient() as ac:
             response = await ac.get(path)
             result = response.text
-            await cache.set(key, result, expire=constants.ONE_HOUR)
+            await cache.set(key, result, expire=config.ONE_HOUR)
             return result
 
 
 @app.get(
-    f"/{constants.RESTAURANTS_PATH}/{{restaurant}}", response_model=models.Restaurant
+    f"/{config.RESTAURANTS_PATH}/{{restaurant}}", response_model=models.Restaurant
 )
 async def get_single_restaurant(
     restaurant: str = Path(..., title="The ID of the restaurant you want to query"),
@@ -81,12 +81,12 @@ async def get_single_restaurant(
         restaurant,
         models.Restaurant,
         cache,
-        f"{constants.RELAY_SOURCE_URL}/{constants.RESTAURANTS_PATH}/{restaurant}",
+        f"{config.RELAY_SOURCE_URL}/{config.RESTAURANTS_PATH}/{restaurant}",
     )
 
 
 # Using :path parameter directly from Starlette
-@app.get(f"/{constants.RELAY_ANYTHING}/{{query:path}}")
+@app.get(f"/{config.RELAY_ANYTHING}/{{query:path}}")
 async def relay_anything(
     query: str,
     cache: RedisCacheBackend = Depends(redis_cache),
@@ -94,7 +94,7 @@ async def relay_anything(
     return await get_cache_or_request_without_validation(
         f"relay_anything/{query}",
         cache,
-        f"{constants.RELAY_SOURCE_URL}/{query}",
+        f"{config.RELAY_SOURCE_URL}/{query}",
     )
 
 

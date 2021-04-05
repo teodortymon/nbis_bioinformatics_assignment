@@ -1,10 +1,10 @@
 from typing import Final
 
-RELAY_ANYTHING: Final = "relay_anything"
-RESTAURANTS_PATH: Final = "restaurant"
-RELAY_SOURCE_URL: Final = "https://menu.dckube.scilifelab.se/api"
-
-ONE_HOUR = 3600
+# CAVEAT: These constants rely on real api data.
+# In case of deletion of 'Bistro Rudbeck' from the api they should be updated
+RESTAURANT_ID: Final = {"valid": "rudbeck", "invalid": "dsdsdsd"}
+VALID_RESTAURANT_TITLE: Final = "Bistro Rudbeck"
+SAMPLE_DISH_NAME: Final = "Inga måltider serveras"
 
 INVALID_RESTAURANT_ID: Final = "dsadasdasd"
 RUDBECK_ID: Final = "rudbeck"
