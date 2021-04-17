@@ -7,13 +7,13 @@ runner = CliRunner()
 
 
 def test_valid_restaurant_id():
-    result = runner.invoke(app, [test_constants.RESTAURANT_ID["valid"]])
+    result = runner.invoke(app, [test_constants.VALID_RESTAURANT_ID])
     assert result.exit_code == 0
     assert test_constants.VALID_RESTAURANT_TITLE in result.stdout
 
 
 def test_invalid_restaurant_id():
-    result = runner.invoke(app, [test_constants.RESTAURANT_ID["invalid"]])
+    result = runner.invoke(app, [test_constants.INVALID_RESTAURANT_ID])
     assert result.exit_code == 1
 
 

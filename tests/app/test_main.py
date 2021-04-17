@@ -21,17 +21,17 @@ async def test_all_restaurants(httpxclient):
     response = await httpxclient.get(config["RESTAURANTS_PATH"])
     assert response.status_code == 200
     assert response.json()
-    assert "restaurants" in response.text
+    assert test_constants.VALID_MANY_RESTAURANTS_STRING in response.text
 
 
 @pytest.mark.asyncio
 async def test_single_valid_restaurant(httpxclient):
     response = await httpxclient.get(
-        f"{config['RESTAURANTS_PATH']}/{test_constants.RUDBECK_ID}"
+        f"{config['RESTAURANTS_PATH']}/{test_constants.VALID_RESTAURANT_ID}"
     )
     assert response.status_code == 200
     assert response.json()
-    assert "Rudbeck" in response.text
+    assert test_constants.VALID_RESTAURANT_TITLE in response.text
 
 
 @pytest.mark.asyncio
@@ -49,14 +49,14 @@ async def test_relay_anything_all_restaurants(httpxclient):
     )
     assert response.status_code == 200
     assert response.json()
-    assert "restaurants" in response.text
+    assert test_constants.VALID_MANY_RESTAURANTS_STRING in response.text
 
 
 @pytest.mark.asyncio
 async def test_relay_anything_single_restaurants(httpxclient):
     response = await httpxclient.get(
-        f"{config['RELAY_ANYTHING']}/{config['RESTAURANTS_PATH']}/{test_constants.RUDBECK_ID}/"
+        f"{config['RELAY_ANYTHING']}/{config['RESTAURANTS_PATH']}/{test_constants.VALID_RESTAURANT_ID}"
     )
     assert response.status_code == 200
     assert response.json()
-    assert "Rudbeck" in response.text
+    assert test_constants.VALID_RESTAURANT_TITLE in response.text
