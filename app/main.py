@@ -1,6 +1,7 @@
 from typing import Optional, Type
 
-from fastapi import FastAPI, Path, Depends
+from fastapi.exceptions import ValidationError
+from fastapi.responses import PlainTextResponse
 from fastapi_cache import caches, close_caches  # type: ignore
 from fastapi_cache.backends.base import BaseCacheBackend  # type: ignore
 from fastapi_cache.backends.redis import CACHE_KEY, RedisCacheBackend  # type: ignore
@@ -40,9 +41,10 @@ async def get_cache_or_request_with_model(
     model: Type[models.BaseModel],
     cache: RedisCacheBackend,
     path: str,
-) -> models.BaseModel:
+) -> Union[models.BaseModel, PlainTextResponse]:
     cached_result = await cache.get(key)
 
+    try:
     if cached_result:
         return model.parse_raw(cached_result)
     else:
@@ -51,6 +53,11 @@ async def get_cache_or_request_with_model(
             result = model.parse_raw(response.content)
             await cache.set(key, result.json(), expire=config.ONE_HOUR)
             return result
+    except ValidationError as exc:
+        return PlainTextResponse(
+            "Error 404\nInvalid request/response.\nHint: Are you sure that you have provided a proper restaurant id?",
+            status_code=404,
+        )
 
 
 async def get_cache_or_request_without_validation(
