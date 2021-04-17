@@ -7,4 +7,7 @@ requests==2.25.1
 typer==0.3.2
 yaspin==1.5.0
 locust==1.4.4
-pytest-asyncio
+pytest-asyncio==0.14.0
+PyYAML==5.4.1
+asgi-lifespan==1.0.1
+mypy==0.812

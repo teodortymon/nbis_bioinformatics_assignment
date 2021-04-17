@@ -44,7 +44,7 @@ services:
     ports:
       - 80:80
     volumes:
-      - ./app:/app
+      - ./:/app
     depends_on:
       - redis
     networks:
