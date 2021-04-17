@@ -100,6 +100,8 @@ async def relay_anything(
 
 @app.on_event("startup")
 async def on_startup() -> None:
+    if redis_cache():
+        caches.flush()
     rc = RedisCacheBackend("redis://redis:6379/?password=nbis_is_the_best")
     caches.set(CACHE_KEY, rc)
 
