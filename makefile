@@ -9,9 +9,12 @@ run-prod: ## Run containers optimzed for the available hardware.
 run-dev: ## Run containers in development mode (code reloading + volume mounted as in local workspace)
 	docker-compose -f docker-compose-dev.yml up
 
-test: ## Run mypy & pytests. Spin up all the containers firsts as tests rely on redis cache.
+test: ## Run mypy & pytests. Spin up all the containers in dev mode firsts as tests rely on redis cache and local test files
 	docker-compose exec web pytest
 	docker-compose exec web mypy */*.py
+
+shell: ## Atttach a bash shell to the relay container
+	docker exec -it relay /bin/bash
 
 rebuild: ## Rebuild all containers
 	docker-compose build --force-rm --no-cache
