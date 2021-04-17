@@ -10,8 +10,8 @@ run-dev: ## Run containers in development mode (code reloading + volume mounted 
 	docker-compose -f docker-compose-dev.yml up
 
 test: ## Run mypy & pytests. Spin up all the containers firsts as tests rely on redis cache.
-	mypy */*.py
 	docker-compose exec web pytest
+	docker-compose exec web mypy */*.py
 
 rebuild: ## Rebuild all containers
 	docker-compose build --force-rm --no-cache
