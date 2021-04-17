@@ -1,5 +1,7 @@
-from typing import Optional, Type
+from typing import Optional, Type, Union
 
+import yaml
+from fastapi import Depends, FastAPI, Path
 from fastapi.exceptions import ValidationError
 from fastapi.responses import PlainTextResponse
 from fastapi_cache import caches, close_caches  # type: ignore
@@ -7,23 +9,18 @@ from fastapi_cache.backends.base import BaseCacheBackend  # type: ignore
 from fastapi_cache.backends.redis import CACHE_KEY, RedisCacheBackend  # type: ignore
 from httpx import AsyncClient
 
-import config
-import models
+from app import models
 
-# TODO: Add more explanatory error messages
-# TODO: Separate mock test from the production config
-# TODO: Add mypy and pytest as CI/CD
-
+config = yaml.safe_load(open("config.yml"))
 
 app = FastAPI()
-
 
 # Set Redis as the cache
 def redis_cache() -> Optional[BaseCacheBackend]:
     return caches.get(CACHE_KEY)
 
 
-@app.get(f"/{config.RESTAURANTS_PATH}", response_model=models.RestaurantList)
+@app.get(f"/{config['RESTAURANTS_PATH']}", response_model=models.RestaurantList)
 async def get_all_restaurants(
     cache: RedisCacheBackend = Depends(redis_cache),
 ):
@@ -32,7 +29,22 @@ async def get_all_restaurants(
         "restaurant_list",
         models.RestaurantList,
         cache,
-        f"{config.RELAY_SOURCE_URL}/{config.RESTAURANTS_PATH}",
+        f"{config['RELAY_SOURCE_URL']}/{config['RESTAURANTS_PATH']}",
+    )
+
+
+@app.get(
+    f"/{config['RESTAURANTS_PATH']}/{{restaurant}}", response_model=models.Restaurant
+)
+async def get_single_restaurant(
+    restaurant: str = Path(..., title="The ID of the restaurant you want to query"),
+    cache: RedisCacheBackend = Depends(redis_cache),
+):
+    return await get_cache_or_request_with_model(
+        restaurant,
+        models.Restaurant,
+        cache,
+        f"{config['RELAY_SOURCE_URL']}/{config['RESTAURANTS_PATH']}/{restaurant}",
     )
 
 
@@ -45,19 +57,31 @@ async def get_cache_or_request_with_model(
     cached_result = await cache.get(key)
 
     try:
-    if cached_result:
-        return model.parse_raw(cached_result)
-    else:
-        async with AsyncClient() as ac:
-            response = await ac.get(path)
-            result = model.parse_raw(response.content)
-            await cache.set(key, result.json(), expire=config.ONE_HOUR)
-            return result
+        if cached_result:
+            return model.parse_raw(cached_result)
+        else:
+            async with AsyncClient() as ac:
+                response = await ac.get(path)
+                result = model.parse_raw(response.content)
+                await cache.set(key, result.json(), expire=config["CACHE_TTL"])
+                return result
     except ValidationError as exc:
         return PlainTextResponse(
             "Error 404\nInvalid request/response.\nHint: Are you sure that you have provided a proper restaurant id?",
             status_code=404,
         )
+
+
+@app.get(f"/{config['RELAY_ANYTHING']}/{{query:path}}")
+async def relay_anything(
+    query: str,
+    cache: RedisCacheBackend = Depends(redis_cache),
+) -> str:
+    return await get_cache_or_request_without_validation(
+        f"relay_anything/{query}",
+        cache,
+        f"{config['RELAY_SOURCE_URL']}/{query}",
+    )
 
 
 async def get_cache_or_request_without_validation(
@@ -73,36 +97,8 @@ async def get_cache_or_request_without_validation(
         async with AsyncClient() as ac:
             response = await ac.get(path)
             result = response.text
-            await cache.set(key, result, expire=config.ONE_HOUR)
+            await cache.set(key, result, expire=config["CACHE_TTL"])
             return result
-
-
-@app.get(
-    f"/{config.RESTAURANTS_PATH}/{{restaurant}}", response_model=models.Restaurant
-)
-async def get_single_restaurant(
-    restaurant: str = Path(..., title="The ID of the restaurant you want to query"),
-    cache: RedisCacheBackend = Depends(redis_cache),
-):
-    return await get_cache_or_request_with_model(
-        restaurant,
-        models.Restaurant,
-        cache,
-        f"{config.RELAY_SOURCE_URL}/{config.RESTAURANTS_PATH}/{restaurant}",
-    )
-
-
-# Using :path parameter directly from Starlette
-@app.get(f"/{config.RELAY_ANYTHING}/{{query:path}}")
-async def relay_anything(
-    query: str,
-    cache: RedisCacheBackend = Depends(redis_cache),
-) -> str:
-    return await get_cache_or_request_without_validation(
-        f"relay_anything/{query}",
-        cache,
-        f"{config.RELAY_SOURCE_URL}/{query}",
-    )
 
 
 @app.on_event("startup")

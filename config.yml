@@ -1,0 +1,5 @@
+RELAY_ANYTHING: relay_anything
+RESTAURANTS_PATH: restaurant
+RELAY_SOURCE_URL: https://menu.dckube.scilifelab.se/api
+APP_URL: http://34.67.173.3/restaurant/
+CACHE_TTL: 3600 # 3600 = one hour

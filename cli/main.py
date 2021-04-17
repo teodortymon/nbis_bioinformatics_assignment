@@ -1,9 +1,13 @@
+from typing import Optional
+
 import requests
 import typer
-from typing import Optional
-from yaspin import yaspin   # type: ignore
-import error_msgs
-import config
+import yaml
+from yaspin import yaspin  # type: ignore
+
+from cli import error_msgs
+
+config = yaml.safe_load(open("config.yml"))
 
 app = typer.Typer()
 
@@ -44,14 +48,14 @@ def list_all_and_pick_one_restaurant_id():
 def request_all_restaurants():
     with yaspin(text="Loading all restaurants", color="yellow") as spinner:
         try:
-            response = requests.get(config.APP_URL)
+            response = requests.get(config["APP_URL"])
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            spinner.write(
-                f"{error_msgs.ERROR_REQUEST_MANY_RESTAURANTS} \n  {repr(e)}"
-            )
+            spinner.write(f"{error_msgs.ERROR_REQUEST_MANY_RESTAURANTS} \n  {repr(e)}")
             spinner.fail("[Failed]")
+
             raise typer.Exit(code=1)
+
         else:
             spinner.ok("[Success]")
     return response
@@ -70,7 +74,7 @@ def decode_all_restaurants(data):
 def request_restaurant(restaurant_id: str):
     with yaspin(text=f"Loading {restaurant_id}", color="yellow") as spinner:
         try:
-            response = requests.get(config.APP_URL + restaurant_id)
+            response = requests.get(config["APP_URL"] + restaurant_id)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             spinner.write(
