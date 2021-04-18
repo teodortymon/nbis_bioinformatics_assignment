@@ -19,8 +19,6 @@ def main(
     )
 ):
     """
-    Query teodortymon.lunch to see the latest lunches.
-
     Provide RESTAURANT_ID to query the restaurant directly
     or run without any arguments to see all the available restaurants.
     """
@@ -121,7 +119,7 @@ def show_menu(restaurant_id: str):
         f'\nWebsite: {restaurant["url"]}'
         f'\nDirections: {restaurant["map_url"]}'
         f"\nID: {restaurant_id} (You can use this ID to query the restaurant directly"
-        f' e.g. "lunch-scifi {restaurant_id}")'
+        f' e.g. "python3 -m cli.main {restaurant_id}")'
     )
 
 

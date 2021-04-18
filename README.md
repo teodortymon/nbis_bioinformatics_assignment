@@ -6,6 +6,21 @@ With reference number: AN 2.2.1-283-21
 
 Submission by Teodor Wojcik
 
+### Table of Contents
+
+- [Relay server](#relay-server)
+  - [Live versions](#live-versions)
+  - [Code structure](#code-structure)
+  - [Endpoints](#endpoints)
+  - [Docker containers](#docker-containers)
+  - [Running](#running)
+  - [Testing](#testing)
+- [CLI](#cli)
+- [Extra tasks &amp; rationales](#extra-tasks--rationales)
+  - [Cache](#cache)
+  - [Multi threading](#multi-threading)
+  - [Load tests](#load-tests)
+
 <details>
 <summary>Instructions for the required tasks</summary>
 <p>
@@ -85,7 +100,7 @@ page).
 
 ## Quick overview
 
-To spin up the relay server, redis cache and redis insights do:
+To spin up the relay server, redis cache and redis insights:
 
 ```sh
 git clone git@github.com:NBISweden/devops-umu-teodortymon.git
@@ -103,27 +118,23 @@ Then open [http://localhost:80/docs](http://localhost:80/docs) to access the api
 
 Relay server is based on [FastAPI](https://fastapi.tiangolo.com).
 
-<details>
-<summary>Reasoning</summary>
-<p>
+### Rationale
 
 - Since operations will be mostly I/O bound, leveraging asyncronity could provide a siginificant speedup compared to a standard WSGI (ex. Flask). [(Benchmarks)](https://www.techempower.com/benchmarks/#section=test&runid=7464e520-0dc2-473d-bd34-dbdfd7e85911&hw=ph&test=query&l=v2qiv3-db&a=2)
 
 - Great documentation that hints at a nice level of conventions and sensible defaults, but also a possibility to dig deeper in the stack by directly calling the underlying [Starlette](https://www.starlette.io).
 
-- Auto generated interactive api schema documentation can be accessed at thanks to [Swagger U](https://github.com/swagger-api/swagger-ui)
+- Auto generated interactive api schema documentation can be accessed at thanks to [Swagger UI](https://github.com/swagger-api/swagger-ui)
 
 - Since this assignment is at its' core quite straightforward, I though it would be a great opportunity to try something new and hyped by the Python community.
-</p>
-</details>
 
 ### Live versions
 
 - Server can be accessed at a small GoogleCloudEngine instance at: [http://34.67.173.3](http://34.67.173.3)
 - API schema docs at: [http://34.67.173.3/docs ](http://34.67.173.3/docs)
-- Redis insights at: [here](http://34.67.173.3:8001/instance/b9c013d1-8b76-41ec-a233-60622c2584d6/browser/?db=0&search=%2A)
+- Redis insights at: [http://34.67.173.3:8001](http://34.67.173.3:8001)
 
-#### Code structure
+### Code structure
 
 ```
 .
@@ -199,18 +210,11 @@ rebuild: ## Rebuild all containers
 	docker compose build --force-rm --no-cache
 ```
 
-If you want to modify relay code, execute `make run-dev` as it will mount the the current directory in the container allowing you to run new code directly in the container.
+If you want to modify the relay code, execute `make run-dev` as it will mount the the current directory in the container allowing you to run new code directly in the container.
 
-### Testing
+#### Running manually
 
-Based on FastAPI documentation recommendations and my own past experience I've chosen [Pytest](https://docs.pytest.org/en/6.2.x/) for the testing framework. Easiest way to run tests is to:
-
-1. `make run-dev` to first spin the containers in dev mode as integrations tests rely on redis
-2. `make test` which will execute `pytest` inside the containers testing the relay, cache & cli. Type checking by Mypy is also a part of the command.
-
-### Running manually
-
-It is recommended to run `docker compose -f docker-compose-dev.yml` or `make run-dev` as that will also spin up the redis cache which the relay relies on but if you'd would wish to run just the server with a single worker and reload on code change:
+It is recommended to run `docker compose -f docker-compose-dev.yml` or `make run-dev` as that will also spin up the redis cache which the relay relies on but if you'd wish to run just the relay with a single worker and reload on code change:
 
 ```
 
@@ -218,6 +222,13 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 
 ```
+
+### Testing
+
+Based on FastAPI documentation recommendations and my own past experience I've chosen [Pytest](https://docs.pytest.org/en/6.2.x/) for the testing framework. Easiest way to run tests is to:
+
+1. `make run-dev` to first spin the containers in dev mode as integrations tests rely on redis
+2. `make test` which will execute `pytest` inside the containers testing the relay, cache & cli. Type checking by Mypy is also a part of the command.
 
 ## CLI
 
@@ -241,6 +252,8 @@ For caching I chose [Redis](https://redis.io) as it's one of the most popular pr
 
 I used a simple layer on top of [aioredis](https://aioredis.readthedocs.io/en/v1.3.1/) (important for using only async methods and preserving async performance) for FastAPI provided by [fastapi-cache](https://pypi.org/project/fastapi-cache/) that mostly just abstracts an easier to use cache object for FastAPI routes. I made sure to check that package had quite good test coverage, clean code and was actively maintained.
 
+To monitor redis use [redis-insight](https://redislabs.com/redis-enterprise/redis-insight/) provisioned by one of the docker images. Insights GUI will ask you to provide the cache url. Use `make ip` to easily see the containers url.
+
 ### Multi threading
 
 By implementing only `async` methods and using an ASGI stack ([Uvicorn](https://www.uvicorn.org), [Starlette](https://www.starlette.io) and [FastAPI](https://fastapi.tiangolo.com)), there are no blocking methods and a decent speedup with low developer effort is achieved compared to WSGI stacks [(benchmarks)](https://www.techempower.com/benchmarks/#section=test&runid=7464e520-0dc2-473d-bd34-dbdfd7e85911&hw=ph&test=query&l=v2qiv3-db&a=2). Production image will start the relay with the same amount of workers as available CPU cores. More information in [documentation](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker#workers_per_core).
@@ -254,7 +267,7 @@ Load tests are orchestrated by [Locust](https://docs.locust.io/en/stable/) from 
    The server can fault free handle up to ~600 RPS/instance until it becomes throttled down. My first guess would be that the external API is rate limiting the relay.
    ![Throttling](https://i.imgur.com/UjVfQZ2.png)
 
-   Also it's worth noting that on GKE the less expensive CPU units are only allowed to "burst" ([docs](https://cloud.google.com/compute/docs/machine-types#machine_types)) to increase the processing for a short period of time. That could also contribute to throttling especially when compared to the CPU metrics which show ~300% usage spikes followed by rapid drops.
+   Also it's worth noting that on CKE the less expensive CPU units are only allowed to "burst" ([docs](https://cloud.google.com/compute/docs/machine-types#machine_types)) to increase the processing for a short period of time. That could also contribute to throttling especially when compared to the CPU metrics which show ~300% usage spikes followed by rapid drops.
 
 2. Cold boot, empty cache, high load
 
