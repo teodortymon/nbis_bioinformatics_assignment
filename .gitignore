@@ -2,9 +2,6 @@
 .idea/
 .vscode
 
-# Redis
-redis-data/
-
 # Filesystem
 .DS_Store
 
