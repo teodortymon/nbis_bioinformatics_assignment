@@ -1,6 +1,7 @@
 from typing import Optional, Type, Union
 
 import yaml
+import logging
 from fastapi import Depends, FastAPI, Path
 from fastapi.exceptions import ValidationError
 from socket import gaierror
@@ -11,8 +12,10 @@ from fastapi_cache.backends.redis import CACHE_KEY, RedisCacheBackend  # type: i
 from httpx import AsyncClient, Response
 
 from app import models
+from app import messages
 
 config = yaml.safe_load(open("config.yml"))
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -61,13 +64,17 @@ async def get_cache_or_request_with_model(
     path: str,
 ) -> Union[models.BaseModel, PlainTextResponse]:
     cached_result = None
+    cache_down = None
     try:
         cached_result = await cache.get(key)
+        logger.debug(messages.CACHE_AVAILABLE)
     except Exception as ex:
         cache_down = True
+        logger.debug(f"{messages.CACHE_UNAVAILABLE}\nErr: {repr(ex)}")
 
     try:
         if cached_result:
+            logger.debug(messages.CACHE_HIT)
             return model.parse_raw(cached_result)
         else:
             response = await request_data(path)
@@ -100,12 +107,14 @@ async def get_cache_or_request_without_validation(
     cache: RedisCacheBackend,
     path: str,
 ) -> str:
-
     cached_result = None
+    cache_down = None
     try:
         cached_result = await cache.get(key)
-    except Exception:
+        logger.debug(messages.CACHE_AVAILABLE)
+    except Exception as ex:
         cache_down = True
+        logger.debug(f"{messages.CACHE_UNAVAILABLE}\nErr: {repr(ex)}")
 
     if cached_result:
         return cached_result
@@ -129,5 +138,5 @@ async def on_startup() -> None:
 async def on_shutdown() -> None:
     try:
         await close_caches()
-    except gaierror as CacheNotReachableError:
+    except gaierror as ex:
         pass
