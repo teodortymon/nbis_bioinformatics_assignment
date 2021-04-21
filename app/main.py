@@ -85,7 +85,7 @@ async def get_cache_or_request_with_model(
 
     except ValidationError as exc:
         return PlainTextResponse(
-            "Error 404\nInvalid request/response.\nHint: Are you sure that you have provided a proper restaurant id?",
+            messages.VALIDATION_FAIL,
             status_code=404,
         )
 
