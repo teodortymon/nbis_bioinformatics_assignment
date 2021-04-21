@@ -46,7 +46,7 @@ async def httpxclient_without_cache(caplog, cache_log_msg):
 
 @pytest.mark.asyncio
 async def test_all_restaurants(client, cache_log_msg, caplog):
-    response = await client.get(config["RESTAURANTS_PATH"])
+    response = await client.get(app.url_path_for("get_all_restaurants"))
     assert response.status_code == 200
     assert response.json()
     assert test_constants.VALID_MANY_RESTAURANTS_STRING in response.text
@@ -56,7 +56,9 @@ async def test_all_restaurants(client, cache_log_msg, caplog):
 @pytest.mark.asyncio
 async def test_single_valid_restaurant(client, cache_log_msg, caplog):
     response = await client.get(
-        f"{config['RESTAURANTS_PATH']}/{test_constants.VALID_RESTAURANT_ID}"
+        app.url_path_for(
+            "get_single_restaurant", restaurant=test_constants.VALID_RESTAURANT_ID
+        )
     )
     assert response.status_code == 200
     assert response.json()
@@ -67,7 +69,9 @@ async def test_single_valid_restaurant(client, cache_log_msg, caplog):
 @pytest.mark.asyncio
 async def test_single_invalid_restaurant(client, cache_log_msg, caplog):
     response = await client.get(
-        f"{config['RESTAURANTS_PATH']}/{test_constants.INVALID_RESTAURANT_ID}"
+        app.url_path_for(
+            "get_single_restaurant", restaurant=test_constants.INVALID_RESTAURANT_ID
+        )
     )
     assert response.status_code == 404
     assert cache_log_msg in caplog.text
@@ -76,7 +80,7 @@ async def test_single_invalid_restaurant(client, cache_log_msg, caplog):
 @pytest.mark.asyncio
 async def test_relay_anything_all_restaurants(client, cache_log_msg, caplog):
     response = await client.get(
-        f"{config['RELAY_ANYTHING']}/{config['RESTAURANTS_PATH']}"
+        app.url_path_for("relay_anything", query=config["RESTAURANTS_PATH"])
     )
     assert response.status_code == 200
     assert response.json()
@@ -87,7 +91,10 @@ async def test_relay_anything_all_restaurants(client, cache_log_msg, caplog):
 @pytest.mark.asyncio
 async def test_relay_anything_single_restaurants(client, cache_log_msg, caplog):
     response = await client.get(
-        f"{config['RELAY_ANYTHING']}/{config['RESTAURANTS_PATH']}/{test_constants.VALID_RESTAURANT_ID}"
+        app.url_path_for(
+            "relay_anything",
+            query=f"{config['RESTAURANTS_PATH']}/{test_constants.VALID_RESTAURANT_ID}",
+        )
     )
     assert response.status_code == 200
     assert response.json()
