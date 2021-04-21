@@ -36,6 +36,8 @@ services:
       - redis-net
 
   web:
+    environment:
+      - LOG_LEVEL=debug
     container_name: relay
     build:
       context: ./
