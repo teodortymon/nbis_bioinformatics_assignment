@@ -3,11 +3,12 @@ from typing import Optional, Type, Union
 import yaml
 from fastapi import Depends, FastAPI, Path
 from fastapi.exceptions import ValidationError
+from socket import gaierror
 from fastapi.responses import PlainTextResponse
 from fastapi_cache import caches, close_caches  # type: ignore
 from fastapi_cache.backends.base import BaseCacheBackend  # type: ignore
 from fastapi_cache.backends.redis import CACHE_KEY, RedisCacheBackend  # type: ignore
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 
 from app import models
 
@@ -18,6 +19,11 @@ app = FastAPI()
 # Set Redis as the cache
 def redis_cache() -> Optional[BaseCacheBackend]:
     return caches.get(CACHE_KEY)
+
+
+async def request_data(path: str) -> Response:
+    async with AsyncClient() as ac:
+        return await ac.get(path)
 
 
 @app.get(f"/{config['RESTAURANTS_PATH']}", response_model=models.RestaurantList)
@@ -54,17 +60,22 @@ async def get_cache_or_request_with_model(
     cache: RedisCacheBackend,
     path: str,
 ) -> Union[models.BaseModel, PlainTextResponse]:
-    cached_result = await cache.get(key)
+    cached_result = None
+    try:
+        cached_result = await cache.get(key)
+    except Exception as ex:
+        cache_down = True
 
     try:
         if cached_result:
             return model.parse_raw(cached_result)
         else:
-            async with AsyncClient() as ac:
-                response = await ac.get(path)
-                result = model.parse_raw(response.content)
+            response = await request_data(path)
+            result = model.parse_raw(response.content)
+            if not cache_down:
                 await cache.set(key, result.json(), expire=config["CACHE_TTL"])
-                return result
+            return result
+
     except ValidationError as exc:
         return PlainTextResponse(
             "Error 404\nInvalid request/response.\nHint: Are you sure that you have provided a proper restaurant id?",
@@ -89,16 +100,21 @@ async def get_cache_or_request_without_validation(
     cache: RedisCacheBackend,
     path: str,
 ) -> str:
-    cached_result = await cache.get(key)
+
+    cached_result = None
+    try:
+        cached_result = await cache.get(key)
+    except Exception:
+        cache_down = True
 
     if cached_result:
         return cached_result
     else:
-        async with AsyncClient() as ac:
-            response = await ac.get(path)
-            result = response.text
+        response = await request_data(path)
+        result = response.text
+        if not cache_down:
             await cache.set(key, result, expire=config["CACHE_TTL"])
-            return result
+        return result
 
 
 @app.on_event("startup")
@@ -111,4 +127,7 @@ async def on_startup() -> None:
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
-    await close_caches()
+    try:
+        await close_caches()
+    except gaierror as CacheNotReachableError:
+        pass
